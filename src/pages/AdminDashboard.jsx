@@ -413,10 +413,6 @@ export default function AdminDashboard() {
                       <span className="font-mono text-tertiary font-bold text-lg">₹{monthlyRevenue.toLocaleString('en-IN')}</span>
                     </div>
                     <div className="flex justify-between items-end border-b border-white/5 pb-2">
-                      <span className="text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">Discovery Sales</span>
-                      <span className="font-mono text-blue-400 font-bold">₹{discoveryRevenue.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="flex justify-between items-end border-b border-white/5 pb-2">
                       <span className="text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">Membership Sales</span>
                       <span className="font-mono text-green-400 font-bold">₹{membershipRevenue.toLocaleString('en-IN')}</span>
                     </div>
