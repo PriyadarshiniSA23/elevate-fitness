@@ -170,7 +170,7 @@ export default function Home() {
               </span>
               <h1 
                 ref={heroTitleRef}
-                className="font-display-lg text-[44px] md:text-display-lg leading-tight text-primary font-bold"
+                className="font-display-lg text-4xl md:text-5xl lg:text-[72px] leading-tight text-primary font-bold"
               >
                 Elevate Your Body. <br />
                 <span className="italic text-primary/70">Transform Your Life.</span>

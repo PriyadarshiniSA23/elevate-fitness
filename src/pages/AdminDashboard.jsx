@@ -31,6 +31,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const [showAddTrainerModal, setShowAddTrainerModal] = useState(false);
   const [showAddProgramModal, setShowAddProgramModal] = useState(false);
@@ -55,6 +56,7 @@ export default function AdminDashboard() {
       setActiveTab(tab);
       if (filter) setSearchQuery(filter);
       else setSearchQuery('');
+      setIsMobileMenuOpen(false);
       setTimeout(() => gsap.to('.animate-fadeIn', { opacity: 1, y: 0, duration: 0.4 }), 50);
     }});
   };
@@ -194,7 +196,7 @@ export default function AdminDashboard() {
     <div className="flex h-screen overflow-hidden bg-surface text-on-surface">
       
       {/* Sidebar Navigation Panel */}
-      <aside className="h-screen w-64 bg-surface-container-low/80 backdrop-blur-2xl border-r border-outline-variant/10 shadow-2xl flex flex-col justify-between shrink-0 z-50">
+      <aside className={`h-screen w-64 bg-surface-container-low/80 backdrop-blur-2xl border-r border-outline-variant/10 shadow-2xl flex flex-col justify-between shrink-0 z-50 fixed md:relative transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="p-6 overflow-y-auto">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-10 h-10 rounded-full flex items-center justify-center bg-tertiary/20 text-tertiary">
@@ -250,23 +252,31 @@ export default function AdminDashboard() {
       <main className="flex-1 overflow-y-auto relative h-full flex flex-col justify-between">
         
         {/* Top Header Controls */}
-        <header className="sticky top-0 w-full z-40 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 px-8 h-20 flex items-center justify-between shrink-0">
-          <div>
-            <h2 className="font-serif text-xl font-semibold text-primary capitalize">Elevate Fitness Control Center</h2>
-            {activeTab === 'dashboard' && (
-              <p className="text-[10px] text-on-surface-variant uppercase tracking-widest mt-1">
-                Monitor members, bookings, trainers, revenue, memberships, and business performance in real time.
-              </p>
-            )}
-            {activeTab !== 'dashboard' && (
-              <p className="text-[10px] text-on-surface-variant uppercase tracking-widest mt-1">
-                {activeTab.replace('-', ' ')} Hub
-              </p>
-            )}
+        <header className="sticky top-0 w-full z-40 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 px-4 md:px-8 h-20 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden text-primary p-2 hover:bg-white/5 rounded-full transition-colors flex items-center justify-center"
+            >
+              <span className="material-symbols-outlined">{isMobileMenuOpen ? 'close' : 'menu'}</span>
+            </button>
+            <div>
+              <h2 className="font-serif text-lg md:text-xl font-semibold text-primary capitalize">Elevate Fitness Control Center</h2>
+              {activeTab === 'dashboard' && (
+                <p className="hidden md:block text-[10px] text-on-surface-variant uppercase tracking-widest mt-1">
+                  Monitor members, bookings, trainers, revenue, memberships, and business performance in real time.
+                </p>
+              )}
+              {activeTab !== 'dashboard' && (
+                <p className="text-[10px] text-on-surface-variant uppercase tracking-widest mt-1">
+                  {activeTab.replace('-', ' ')} Hub
+                </p>
+              )}
+            </div>
           </div>
           
           <div className="flex items-center gap-6">
-            <div className="relative flex items-center bg-surface-container-high px-4 py-2 rounded-full border border-outline-variant/10">
+            <div className="hidden md:flex relative items-center bg-surface-container-high px-4 py-2 rounded-full border border-outline-variant/10">
               <span className="material-symbols-outlined text-on-surface-variant text-[18px]">search</span>
               <input 
                 type="text" 
@@ -277,7 +287,7 @@ export default function AdminDashboard() {
               />
             </div>
             
-            <div className="flex items-center gap-3 pl-6 border-l border-outline-variant/10">
+            <div className="hidden sm:flex items-center gap-3 pl-6 border-l border-outline-variant/10">
               <div className="text-right">
                 <p className="font-label-caps text-[10px] text-on-surface font-bold tracking-widest">MASTER ADMIN</p>
                 <p className="text-[9px] text-on-surface-variant font-mono uppercase tracking-tighter opacity-60">System Control</p>
@@ -294,10 +304,10 @@ export default function AdminDashboard() {
             <div className="space-y-8 animate-fadeIn">
               
               {/* 3. WELCOME PANEL */}
-              <div className="glass-card p-8 rounded-xl border border-white/5 relative overflow-hidden flex flex-col md:flex-row justify-between items-center gap-6">
+              <div className="glass-card p-6 md:p-8 rounded-xl border border-white/5 relative overflow-hidden flex flex-col md:flex-row justify-between items-center gap-6">
                 <div className="gold-glow absolute -inset-10 opacity-30 pointer-events-none"></div>
-                <div className="relative z-10">
-                  <h3 className="font-serif text-3xl font-bold text-primary">Welcome, Master Admin</h3>
+                <div className="relative z-10 text-center md:text-left">
+                  <h3 className="font-serif text-2xl md:text-3xl font-bold text-primary">Welcome, Master Admin</h3>
                   <Clock />
                 </div>
                 <div className="flex gap-8 relative z-10">
