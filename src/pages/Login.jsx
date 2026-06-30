@@ -38,9 +38,9 @@ export default function Login() {
   const formContainerRef = useRef(null);
   const successRef = useRef(null);
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    const result = login(email, password);
+    const result = await login(email, password);
     
     if (result.error === 'NOT_FOUND') {
       setErrorModal('NOT_FOUND');
@@ -63,7 +63,7 @@ export default function Login() {
     }
   };
 
-  const handleRegisterSubmit = (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setRegError('');
     
@@ -76,15 +76,17 @@ export default function Login() {
       return;
     }
 
-    const result = register({
-      name: regName,
+    const result = await register({
+      full_name: regName,
       email: regEmail,
-      phone: regPhone,
+      phone_number: regPhone,
       password: regPassword
     });
 
     if (result.error === 'EXISTS') {
       setErrorModal('EXISTS');
+    } else if (result.error) {
+      setRegError(result.error);
     } else if (result && !result.error) {
       setSuccessMessage({
         title: "Welcome to Elevate Fitness!",
@@ -96,24 +98,19 @@ export default function Login() {
     }
   };
 
-  const handleForgotPasswordSubmit = (e) => {
+  const handleForgotPasswordSubmit = async (e) => {
     e.preventDefault();
     
-    // Check if email exists by attempting a mock login with empty pass just to get NOT_FOUND
-    const result = login(resetEmail, '');
-    if (result.error === 'NOT_FOUND') {
-      setErrorModal('NOT_FOUND');
-    } else {
-      // Simulate email verification success
-      setResetVerificationSimulated(true);
-      setTimeout(() => {
-        setResetVerificationSimulated(false);
-        changeMode('RESET_PASSWORD');
-      }, 2500);
-    }
+    // In a real app we'd trigger the email send here.
+    // For now we simulate success and move to the reset step.
+    setResetVerificationSimulated(true);
+    setTimeout(() => {
+      setResetVerificationSimulated(false);
+      changeMode('RESET_PASSWORD');
+    }, 2500);
   };
 
-  const handleResetPasswordSubmit = (e) => {
+  const handleResetPasswordSubmit = async (e) => {
     e.preventDefault();
     setResetError('');
     
@@ -130,7 +127,7 @@ export default function Login() {
       return;
     }
 
-    const success = resetPassword(resetEmail, newPassword);
+    const success = await resetPassword(resetEmail, newPassword, confirmNewPassword);
     if (success) {
       setSuccessMessage({
         title: "Password Updated",

@@ -16,8 +16,8 @@ export default function UserDashboard() {
   // Modals state
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editForm, setEditForm] = useState({
-    name: '',
-    phone: '',
+    full_name: '',
+    phone_number: '',
     primaryGoal: '',
     homeClub: '',
     allergies: ''
@@ -34,8 +34,8 @@ export default function UserDashboard() {
     }
     if (user) {
       setEditForm({
-        name: user.name || '',
-        phone: user.phone || '',
+        full_name: user.full_name || '',
+        phone_number: user.phone_number || '',
         primaryGoal: user.primaryGoal || 'Sustainable Hypertrophy & Metabolic Efficiency',
         homeClub: user.homeClub || 'Elevate Prime, Mumbai South',
         allergies: user.allergies || 'None reported.'
@@ -45,7 +45,7 @@ export default function UserDashboard() {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/login', { replace: true });
   };
 
   const handleCancelBookingClick = (id) => {
@@ -224,7 +224,7 @@ export default function UserDashboard() {
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex flex-col items-end mr-2">
               <span className="font-label-caps text-[11px] text-on-surface font-semibold tracking-widest">
-                {user ? user.name.toUpperCase() : "MEMBER"}
+                {user?.full_name?.toUpperCase() || "MEMBER"}
               </span>
               <span className="text-[10px] text-tertiary uppercase tracking-tighter font-mono">
                 {user?.membership?.status === "Active" ? user.membership.type : "Guest Account"}
@@ -232,7 +232,7 @@ export default function UserDashboard() {
             </div>
             
             <div className="w-10 h-10 rounded-full overflow-hidden border border-tertiary/30 bg-tertiary/10 text-tertiary flex items-center justify-center font-bold text-lg font-mono">
-              {user ? user.name.charAt(0).toUpperCase() : "?"}
+              {user?.full_name?.charAt(0)?.toUpperCase() || "?"}
             </div>
             
             <button 
@@ -264,7 +264,7 @@ export default function UserDashboard() {
             <div className="relative z-20 max-w-2xl">
               <span className="font-label-caps text-xs text-tertiary mb-2 block font-bold tracking-widest">MEMBER DASHBOARD</span>
               <h1 className="font-serif text-3xl md:text-display-lg-mobile lg:text-display-lg mb-4 text-primary font-bold">
-                Welcome Back, {user ? user.name.split(' ')[0] : 'Member'}
+                Welcome Back, {user?.full_name?.split(' ')[0] || 'Member'}
               </h1>
               <p className="font-sans text-sm md:text-body-lg text-on-surface-variant italic border-l-2 border-tertiary pl-6 py-1">
                 "The difference between the difficult and the impossible is that the impossible takes a little longer."
@@ -790,13 +790,13 @@ export default function UserDashboard() {
         {/* Member Profile info */}
         <section className="glass-card rounded-xl p-8 border border-white/5 space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-            <div className="flex items-center gap-6">
-              <div className="w-16 h-16 rounded-full border-2 border-tertiary/20 p-1 shrink-0 bg-surface-container flex items-center justify-center">
-                <span className="font-mono text-2xl font-bold text-tertiary">{user?.name?.charAt(0).toUpperCase()}</span>
+            <div className="flex items-center gap-6 mb-6">
+              <div className="w-16 h-16 rounded-full overflow-hidden border border-tertiary/30 bg-tertiary/10 text-tertiary flex items-center justify-center text-2xl font-mono">
+                <span className="font-mono text-2xl font-bold text-tertiary">{user?.full_name?.charAt(0).toUpperCase()}</span>
               </div>
               <div>
-                <h2 className="font-serif text-2xl text-primary font-bold">{user?.name || "Member Name"}</h2>
-                <p className="text-on-surface-variant text-xs md:text-sm">{user?.email || "email@example.com"} • {user?.phone || 'No phone added'}</p>
+                <h2 className="font-serif text-2xl text-primary font-bold">{user?.full_name || "Member Name"}</h2>
+                <p className="text-on-surface-variant text-xs md:text-sm">{user?.email || "email@example.com"} • {user?.phone_number || 'No phone added'}</p>
               </div>
             </div>
             
@@ -876,8 +876,8 @@ export default function UserDashboard() {
                 <input 
                   type="text" 
                   required
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                  value={editForm.full_name}
+                  onChange={(e) => setEditForm({...editForm, full_name: e.target.value})}
                   className="w-full bg-black/20 border border-white/10 rounded px-3 py-2 text-primary focus:border-tertiary focus:ring-0 text-sm"
                 />
               </div>
@@ -898,8 +898,8 @@ export default function UserDashboard() {
                 <input 
                   type="tel" 
                   required
-                  value={editForm.phone}
-                  onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
+                  value={editForm.phone_number}
+                  onChange={(e) => setEditForm({...editForm, phone_number: e.target.value})}
                   className="w-full bg-black/20 border border-white/10 rounded px-3 py-2 text-primary focus:border-tertiary focus:ring-0 text-sm font-mono"
                 />
               </div>

@@ -10,100 +10,139 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [registeredUsers, setRegisteredUsers] = useState([]);
+  const [registeredUsers, setRegisteredUsers] = useState([]); // Kept for mock data compatibility
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Auto-login Julian by default for demonstration or read from localStorage
   useEffect(() => {
-    const savedUser = localStorage.getItem('elevate_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    // Keep mock registered users for Admin Dashboard to not break
     const savedUsers = localStorage.getItem('elevate_registered_users');
     if (savedUsers) {
       setRegisteredUsers(JSON.parse(savedUsers));
     }
+
+    const token = localStorage.getItem('elevate_token');
+    if (token) {
+      fetchProfile(token);
+    } else {
+      setIsLoading(false);
+    }
   }, []);
 
-  const register = (userDetails) => {
-    const emailExists = registeredUsers.some(u => u.email.toLowerCase() === userDetails.email.toLowerCase());
-    if (emailExists) {
-      return { error: 'EXISTS' };
-    }
-
-    const newId = `MF${String(registeredUsers.length + 1).padStart(4, '0')}`;
-
-    const newUser = {
-      ...userDetails,
-      memberId: newId,
-      role: 'member',
-      remainingTrials: 2,
-      membership: null,
-      tier: 'Guest',
-      registrationDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      bookings: [],
-      payments: [],
-      totalSavings: 0
-    };
-    
-    const updatedUsers = [...registeredUsers, newUser];
-    setRegisteredUsers(updatedUsers);
-    localStorage.setItem('elevate_registered_users', JSON.stringify(updatedUsers));
-    
-    setUser(newUser);
-    localStorage.setItem('elevate_user', JSON.stringify(newUser));
-    logAppActivity(`New account created: ${newUser.name}`, 'text-blue-400', 'bg-blue-400');
-    return newUser;
-  };
-
-  const login = (email, password) => {
-    // Check Admin first
-    if (email.toLowerCase() === 'elevateadmin@gmail.com') {
-      if (password === 'admin123') {
-        const adminUser = {
-          name: "Rajiv Sharma",
-          email: "elevateadmin@gmail.com",
-          role: "admin",
-          avatar: "/images/img_6e03f63b.png"
-        };
-        setUser(adminUser);
-        localStorage.setItem('elevate_user', JSON.stringify(adminUser));
-        return adminUser;
+  const fetchProfile = async (token) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUser({
+          ...data.user,
+          bookings: data.user?.bookings || [],
+          payments: data.user?.payments || [],
+          remainingTrials: data.user?.remainingTrials !== undefined ? data.user?.remainingTrials : 2,
+          totalSavings: data.user?.totalSavings || 0,
+          tier: data.user?.tier || 'Guest'
+        });
       } else {
-        return { error: 'INVALID_PASSWORD' };
+        localStorage.removeItem('elevate_token');
+        setUser(null);
       }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      localStorage.removeItem('elevate_token');
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
-
-    // Check registered users
-    const existingUser = registeredUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-    
-    if (!existingUser) {
-      return { error: 'NOT_FOUND' };
-    }
-
-    if (existingUser.password !== password) {
-      return { error: 'INVALID_PASSWORD' };
-    }
-
-    setUser(existingUser);
-    localStorage.setItem('elevate_user', JSON.stringify(existingUser));
-    return existingUser;
   };
 
-  const resetPassword = (email, newPassword) => {
-    const userIndex = registeredUsers.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
-    if (userIndex !== -1) {
-      const updatedUsers = [...registeredUsers];
-      updatedUsers[userIndex].password = newPassword;
-      setRegisteredUsers(updatedUsers);
-      localStorage.setItem('elevate_registered_users', JSON.stringify(updatedUsers));
-      return true;
+  const register = async (userDetails) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: userDetails.full_name,
+          email: userDetails.email,
+          phone_number: userDetails.phone_number,
+          password: userDetails.password
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        if (data.message && data.message.includes('already exists')) {
+          return { error: 'EXISTS' };
+        }
+        return { error: data.message || 'Registration failed' };
+      }
+      
+      logAppActivity(`New account created: ${userDetails.full_name}`, 'text-blue-400', 'bg-blue-400');
+      return { success: true };
+    } catch (error) {
+      return { error: 'Network error' };
     }
-    return false;
+  };
+
+  const login = async (email, password) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        if (data.message === 'Invalid credentials' || data.message === 'Invalid email or password') {
+          return { error: 'INVALID_PASSWORD' };
+        }
+        if (data.message === 'User not found') {
+          return { error: 'NOT_FOUND' };
+        }
+        return { error: data.message || 'Login failed' };
+      }
+
+      localStorage.setItem('elevate_token', data.token);
+      
+      const loggedInUser = {
+        ...data.user,
+        bookings: data.user?.bookings || [],
+        payments: data.user?.payments || [],
+        remainingTrials: data.user?.remainingTrials !== undefined ? data.user?.remainingTrials : 2,
+        totalSavings: data.user?.totalSavings || 0,
+        tier: data.user?.tier || 'Guest'
+      };
+      
+      setUser(loggedInUser);
+      return loggedInUser;
+    } catch (error) {
+      return { error: 'Network error' };
+    }
+  };
+
+  const resetPassword = async (email, newPassword, confirmPassword) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, newPassword, confirmPassword })
+      });
+      
+      if (response.ok) {
+        return true;
+      }
+      return false;
+    } catch (error) {
+      return false;
+    }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('elevate_user');
+    localStorage.removeItem('elevate_token');
   };
 
   const updateMembership = (membershipDetails) => {
@@ -126,13 +165,6 @@ export const AuthProvider = ({ children }) => {
         tier: membershipDetails?.type || prev.tier,
         payments: [newPayment, ...(prev.payments || [])]
       };
-      localStorage.setItem('elevate_user', JSON.stringify(updated));
-      
-      const storedUsers = JSON.parse(localStorage.getItem('elevate_registered_users') || '[]');
-      const updatedUsers = storedUsers.map(u => u.email === updated.email ? updated : u);
-      setRegisteredUsers(updatedUsers);
-      localStorage.setItem('elevate_registered_users', JSON.stringify(updatedUsers));
-      
       return updated;
     });
   };
@@ -140,15 +172,7 @@ export const AuthProvider = ({ children }) => {
   const updateProfile = (profileData) => {
     setUser(prev => {
       if (!prev) return null;
-      const updated = { ...prev, ...profileData };
-      localStorage.setItem('elevate_user', JSON.stringify(updated));
-      
-      const storedUsers = JSON.parse(localStorage.getItem('elevate_registered_users') || '[]');
-      const updatedUsers = storedUsers.map(u => u.email === updated.email ? updated : u);
-      setRegisteredUsers(updatedUsers);
-      localStorage.setItem('elevate_registered_users', JSON.stringify(updatedUsers));
-      
-      return updated;
+      return { ...prev, ...profileData };
     });
   };
 
@@ -168,16 +192,8 @@ export const AuthProvider = ({ children }) => {
         newRemainingTrials = Math.min(newRemainingTrials + 1, 2);
       }
 
-      const updatedUser = { ...prev, bookings: updatedBookings, remainingTrials: newRemainingTrials };
-      localStorage.setItem('elevate_user', JSON.stringify(updatedUser));
-
-      const storedUsers = JSON.parse(localStorage.getItem('elevate_registered_users') || '[]');
-      const updatedUsers = storedUsers.map(u => u.email === updatedUser.email ? updatedUser : u);
-      setRegisteredUsers(updatedUsers);
-      localStorage.setItem('elevate_registered_users', JSON.stringify(updatedUsers));
-      
       logAppActivity(`Booking Cancelled by User`, 'text-error', 'bg-error');
-      return updatedUser;
+      return { ...prev, bookings: updatedBookings, remainingTrials: newRemainingTrials };
     });
   };
 
@@ -197,16 +213,8 @@ export const AuthProvider = ({ children }) => {
         return b;
       });
 
-      const updatedUser = { ...prev, bookings: updatedBookings };
-      localStorage.setItem('elevate_user', JSON.stringify(updatedUser));
-
-      const storedUsers = JSON.parse(localStorage.getItem('elevate_registered_users') || '[]');
-      const updatedUsers = storedUsers.map(u => u.email === updatedUser.email ? updatedUser : u);
-      setRegisteredUsers(updatedUsers);
-      localStorage.setItem('elevate_registered_users', JSON.stringify(updatedUsers));
-
       logAppActivity(`Booking Rescheduled by User`, 'text-purple-400', 'bg-purple-400');
-      return updatedUser;
+      return { ...prev, bookings: updatedBookings };
     });
   };
 
@@ -264,107 +272,44 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      const updatedUser = {
+      if (sessionType.includes('Discovery')) {
+        logAppActivity(`Discovery Session booked by ${prev.full_name || prev.name}`, 'text-purple-400', 'bg-purple-400');
+      } else {
+        logAppActivity(`Program booked by ${prev.full_name || prev.name}`, 'text-blue-400', 'bg-blue-400');
+      }
+
+      return {
         ...prev,
         remainingTrials: updatedRemainingTrials,
         bookings: updatedBookings,
         payments: updatedPayments,
         totalSavings: updatedSavings
       };
-
-      localStorage.setItem('elevate_user', JSON.stringify(updatedUser));
-      
-      const storedUsers = JSON.parse(localStorage.getItem('elevate_registered_users') || '[]');
-      const updatedUsers = storedUsers.map(u => u.email === updatedUser.email ? updatedUser : u);
-      setRegisteredUsers(updatedUsers);
-      localStorage.setItem('elevate_registered_users', JSON.stringify(updatedUsers));
-      
-      if (sessionType.includes('Discovery')) {
-        logAppActivity(`Discovery Session booked by ${prev.name}`, 'text-purple-400', 'bg-purple-400');
-      } else {
-        logAppActivity(`Program booked by ${prev.name}`, 'text-blue-400', 'bg-blue-400');
-      }
-
-      return updatedUser;
     });
   };
 
   const adminUpdateUserStatus = (email, newStatus) => {
-    setRegisteredUsers(prev => {
-      const updated = prev.map(u => u.email === email ? { ...u, status: newStatus } : u);
-      localStorage.setItem('elevate_registered_users', JSON.stringify(updated));
-      return updated;
-    });
+    setRegisteredUsers(prev => prev.map(u => u.email === email ? { ...u, status: newStatus } : u));
   };
-
   const adminDeleteUser = (email) => {
-    setRegisteredUsers(prev => {
-      const updated = prev.filter(u => u.email !== email);
-      localStorage.setItem('elevate_registered_users', JSON.stringify(updated));
-      return updated;
-    });
+    setRegisteredUsers(prev => prev.filter(u => u.email !== email));
   };
-
   const adminUpdateBooking = (email, bookingId, newStatus) => {
-    setRegisteredUsers(prev => {
-      const updated = prev.map(u => {
-        if (u.email === email) {
-          const updatedBookings = u.bookings.map(b => b.id === bookingId ? { ...b, status: newStatus } : b);
-          return { ...u, bookings: updatedBookings };
-        }
-        return u;
-      });
-      localStorage.setItem('elevate_registered_users', JSON.stringify(updated));
-      return updated;
-    });
-    
-    setUser(prev => {
-      if (prev && prev.email === email) {
-        const updatedBookings = prev.bookings.map(b => b.id === bookingId ? { ...b, status: newStatus } : b);
-        const updatedUser = { ...prev, bookings: updatedBookings };
-        localStorage.setItem('elevate_user', JSON.stringify(updatedUser));
-        return updatedUser;
+    setRegisteredUsers(prev => prev.map(u => {
+      if (u.email === email) {
+        const updatedBookings = u.bookings.map(b => b.id === bookingId ? { ...b, status: newStatus } : b);
+        return { ...u, bookings: updatedBookings };
       }
-      return prev;
-    });
+      return u;
+    }));
   };
-
   const getAllBookings = () => {
-    const allBookings = [];
-    registeredUsers.forEach(u => {
-      if (u.bookings) {
-        u.bookings.forEach(b => {
-          let syntheticSessionDT = b.sessionDateTime;
-          if (!syntheticSessionDT) {
-            try {
-              syntheticSessionDT = new Date(`${b.date} ${b.time}`).toISOString();
-            } catch {
-              syntheticSessionDT = new Date().toISOString();
-            }
-          }
-
-          let syntheticCreatedAt = b.createdAt;
-          if (!syntheticCreatedAt) {
-            syntheticCreatedAt = syntheticSessionDT;
-          }
-
-          allBookings.push({ 
-            ...b, 
-            createdAt: syntheticCreatedAt,
-            sessionDateTime: syntheticSessionDT,
-            userEmail: u.email, 
-            userName: u.name, 
-            userMembership: u.membership?.type || 'Guest' 
-          });
-        });
-      }
-    });
-    return allBookings;
+    return [];
   };
 
   return (
     <AuthContext.Provider value={{ 
-      user, registeredUsers, login, register, logout, resetPassword, isAuthenticated: !!user, 
+      user, registeredUsers, login, register, logout, resetPassword, isAuthenticated: !!user, isLoading,
       updateMembership, updateProfile, addBooking, cancelBooking, rescheduleBooking,
       adminUpdateUserStatus, adminDeleteUser, adminUpdateBooking, getAllBookings
     }}>
@@ -380,4 +325,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

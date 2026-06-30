@@ -101,9 +101,9 @@ export default function Memberships() {
     if (user) {
       setMemberInfo(prev => ({
         ...prev,
-        fullName: user.name || '',
+        fullName: user.full_name || '',
         email: user.email || '',
-        phone: user.phone || ''
+        phone: user.phone_number || ''
       }));
     } else {
       setMemberInfo({ fullName: '', email: '', phone: '' });
@@ -209,7 +209,7 @@ export default function Memberships() {
     setMembershipReceipt({
       id: membershipId,
       type: selectedPlan.title,
-      name: memberInfo.fullName || user?.name || "Guest User",
+      name: memberInfo.fullName || user?.full_name || "Guest User",
       activationDate: formatDate(today),
       expiryDate: formatDate(expiry)
     });

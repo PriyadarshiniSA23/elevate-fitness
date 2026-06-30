@@ -16,6 +16,9 @@ import NotFound from '../pages/NotFound';
 // Layout Wrappers
 import MainLayout from '../layouts/MainLayout';
 
+// Protection
+import ProtectedRoute from '../components/ProtectedRoute';
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -28,11 +31,13 @@ export default function AppRoutes() {
       
       {/* Separate Pages (Custom Header/Footers or Panels) */}
       <Route path="/login" element={<Login />} />
-      <Route path="/book" element={<Booking />} />
       
-      {/* Portals */}
-      <Route path="/dashboard" element={<UserDashboard />} />
-      <Route path="/admin" element={<AdminDashboard />} />
+      {/* Portals (Protected) */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/dashboard" element={<UserDashboard />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/book" element={<Booking />} />
+      </Route>
       
       {/* Error & Redirect fallback */}
       <Route path="/404" element={<MainLayout><NotFound /></MainLayout>} />

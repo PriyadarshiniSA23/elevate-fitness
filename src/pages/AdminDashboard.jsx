@@ -48,7 +48,7 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/login', { replace: true });
   };
 
   const handleNavClick = (tab, filter = '') => {
@@ -108,7 +108,7 @@ export default function AdminDashboard() {
   // Payments & Revenue
   const allPayments = [];
   registeredUsers.forEach(u => {
-    if (u.payments) u.payments.forEach(p => allPayments.push({...p, userEmail: u.email, userName: u.name}));
+    if (u.payments) u.payments.forEach(p => allPayments.push({...p, userEmail: u.email, userName: u.full_name}));
   });
 
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -543,12 +543,12 @@ export default function AdminDashboard() {
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {registeredUsers.filter(u => 
-                      u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                       (searchQuery === 'Discovery' && (!u.membership || u.membership.status !== 'Active'))
                     ).map((u) => (
                       <tr key={u.email} className="hover:bg-white/5 transition-colors text-primary">
-                        <td className="p-4 font-semibold">{u.name}</td>
-                        <td className="p-4 text-xs text-on-surface-variant">{u.email}<br/>{u.phone}</td>
+                        <td className="p-4 font-semibold">{u.full_name}</td>
+                        <td className="p-4 text-xs text-on-surface-variant">{u.email}<br/>{u.phone_number}</td>
                         <td className="p-4">
                           <span className={`px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-wider ${u.membership?.status === 'Active' ? 'bg-tertiary/10 text-tertiary' : 'bg-white/10 text-on-surface-variant'}`}>
                             {u.membership ? u.membership.type : `Discovery (${u.remainingTrials} left)`}

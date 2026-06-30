@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 export default function Navbar() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -81,7 +81,9 @@ export default function Navbar() {
 
         {/* Action Controls - Desktop */}
         <div className="hidden lg:flex items-center gap-6">
-          {isAuthenticated ? (
+          {isLoading ? (
+            <div className="w-8 h-8 border-2 border-tertiary/20 border-t-tertiary rounded-full animate-spin"></div>
+          ) : isAuthenticated ? (
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
                 {user.membership && (
@@ -102,10 +104,10 @@ export default function Navbar() {
                 <button 
                   onClick={handleProfileClick}
                   className="text-on-surface hover:text-primary transition-colors flex items-center focus:outline-none"
-                  title={`Dashboard: ${user.name}`}
+                  title={`Dashboard: ${user?.full_name || 'Member'}`}
                 >
                   <div className="w-10 h-10 rounded-full overflow-hidden border border-tertiary/40 shrink-0 bg-tertiary/10 text-tertiary flex items-center justify-center font-bold text-lg font-mono">
-                    {user.name.charAt(0).toUpperCase()}
+                    {user?.full_name?.charAt(0)?.toUpperCase() || '?'}
                   </div>
                 </button>
               </div>
@@ -113,7 +115,7 @@ export default function Navbar() {
               <button 
                 onClick={() => {
                   logout();
-                  navigate('/');
+                  navigate('/login', { replace: true });
                 }}
                 className="text-on-surface-variant hover:text-error transition-colors flex items-center p-1"
                 title="Logout"
@@ -196,24 +198,29 @@ export default function Navbar() {
 
             <div className="h-px w-full bg-white/10 my-4"></div>
 
-            {isAuthenticated ? (
+            {isLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="w-8 h-8 border-2 border-tertiary/20 border-t-tertiary rounded-full animate-spin"></div>
+              </div>
+            ) : isAuthenticated ? (
               <>
-                <button 
+                <div 
+                  className="w-10 h-10 rounded-full overflow-hidden border-2 border-tertiary/20 flex items-center justify-center bg-surface-container cursor-pointer shrink-0"
+                  title={`Dashboard: ${user.full_name}`}
                   onClick={handleProfileClick}
-                  className="flex items-center gap-4 text-xl text-on-surface hover:text-primary transition-colors text-left"
                 >
-                  <div className="w-10 h-10 rounded-full border border-tertiary/40 shrink-0 bg-tertiary/10 text-tertiary flex items-center justify-center font-bold text-lg font-mono">
-                    {user.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <span className="block font-bold">{user.name}</span>
-                    <span className="block text-sm text-tertiary font-label-caps uppercase tracking-widest">{user.role === 'admin' ? 'Dashboard' : 'Profile'}</span>
-                  </div>
-                </button>
+                  <span className="font-mono text-lg font-bold text-tertiary">
+                    {user.full_name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <span className="block font-bold">{user.full_name}</span>
+                  <span className="block text-sm text-tertiary font-label-caps uppercase tracking-widest">{user.role === 'admin' ? 'Dashboard' : 'Profile'}</span>
+                </div>
                 <button 
                   onClick={() => {
                     logout();
-                    navigate('/');
+                    navigate('/login', { replace: true });
                     setIsMobileMenuOpen(false);
                   }}
                   className="flex items-center gap-3 text-error text-xl font-bold pt-4"

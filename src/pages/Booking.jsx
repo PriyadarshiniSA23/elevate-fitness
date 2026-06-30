@@ -65,9 +65,9 @@ export default function Booking() {
   useEffect(() => {
     if (user) {
       setDetails({
-        name: user.name || '',
+        name: user.full_name || '',
         email: user.email || '',
-        phone: user.phone || ''
+        phone: user.phone_number || ''
       });
     } else {
       setDetails({ name: '', email: '', phone: '' });
