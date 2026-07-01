@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { mockTrainers } from '../services/api';
+import { mockDashboardData } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
+import { useAppData } from '../hooks/useAppData';
 import Footer from '../components/Footer';
 import gsap from 'gsap';
 
 export default function UserDashboard() {
   const { user, logout, cancelBooking, rescheduleBooking, updateProfile } = useAuth();
+  const { trainers } = useAppData();
   const navigate = useNavigate();
   const [activeBookings, setActiveBookings] = useState([]);
   
@@ -64,10 +66,19 @@ export default function UserDashboard() {
     }
   };
 
-  const handleEditProfileSubmit = (e) => {
+  const handleEditProfileSubmit = async (e) => {
     e.preventDefault();
-    updateProfile(editForm);
-    setShowEditProfile(false);
+    const result = await updateProfile({
+      full_name: editForm.full_name,
+      phone_number: editForm.phone_number
+    });
+    
+    if (result.error) {
+      alert(`Update Failed: ${result.error}`);
+    } else {
+      setShowEditProfile(false);
+      setNewlyUnlocked({ title: "Profile Updated", desc: "Your details have been successfully saved." });
+    }
   };
 
   // Animation state
@@ -106,8 +117,8 @@ export default function UserDashboard() {
   
   const nearestSession = confirmedBookings.length > 0 ? confirmedBookings[0] : null;
 
-  const assignedCoach = nearestSession 
-    ? mockTrainers.find(t => t.name === nearestSession.coach) || mockTrainers[0]
+  const assignedCoach = nearestSession && trainers && trainers.length > 0
+    ? trainers.find(t => t.name === nearestSession.coach) || trainers[0]
     : null;
 
   // Monthly goal logic (Only completed sessions in current month)
@@ -274,7 +285,7 @@ export default function UserDashboard() {
                   {user?.membership?.status === "Active" ? user.membership.type : 'Non-Member'}
                 </span>
                 <span className="text-on-surface-variant text-[11px]">
-                  {user?.membership?.status === "Active" ? `Member since ${user.membership.activationDate.split(',')[1] || '2026'}` : 'Guest Account'}
+                  {user?.created_at ? `Member since ${new Date(user.created_at).getFullYear()}` : 'Guest Account'}
                 </span>
               </div>
             </div>
@@ -795,6 +806,7 @@ export default function UserDashboard() {
                 <span className="font-mono text-2xl font-bold text-tertiary">{user?.full_name?.charAt(0).toUpperCase()}</span>
               </div>
               <div>
+                <span className="font-label-caps text-[10px] text-tertiary mb-1 block tracking-widest">{user?.member_id || 'MEM000000'}</span>
                 <h2 className="font-serif text-2xl text-primary font-bold">{user?.full_name || "Member Name"}</h2>
                 <p className="text-on-surface-variant text-xs md:text-sm">{user?.email || "email@example.com"} • {user?.phone_number || 'No phone added'}</p>
               </div>
@@ -806,10 +818,14 @@ export default function UserDashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter pt-8 border-t border-white/5 text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-gutter pt-8 border-t border-white/5 text-sm">
             <div className="space-y-1">
-              <span className="block text-[9px] text-tertiary uppercase tracking-widest font-bold">PRIMARY VITALITY GOAL</span>
-              <p className="text-primary font-medium">{user?.primaryGoal || 'General Fitness'}</p>
+              <span className="block text-[9px] text-tertiary uppercase tracking-widest font-bold">ROLE</span>
+              <p className="text-primary font-medium capitalize">{user?.role || 'User'}</p>
+            </div>
+            <div className="space-y-1">
+              <span className="block text-[9px] text-tertiary uppercase tracking-widest font-bold">JOIN DATE</span>
+              <p className="text-primary font-medium">{user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</p>
             </div>
             <div className="space-y-1">
               <span className="block text-[9px] text-tertiary uppercase tracking-widest font-bold">HOME COLLECTIVE CLUB</span>

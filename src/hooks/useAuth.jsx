@@ -14,12 +14,6 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Keep mock registered users for Admin Dashboard to not break
-    const savedUsers = localStorage.getItem('elevate_registered_users');
-    if (savedUsers) {
-      setRegisteredUsers(JSON.parse(savedUsers));
-    }
-
     const token = localStorage.getItem('elevate_token');
     if (token) {
       fetchProfile(token);
@@ -30,7 +24,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchProfile = async (token) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/profile', {
+      const response = await fetch('http://localhost:5000/api/profile', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -43,8 +37,10 @@ export const AuthProvider = ({ children }) => {
           payments: data.user?.payments || [],
           remainingTrials: data.user?.remainingTrials !== undefined ? data.user?.remainingTrials : 2,
           totalSavings: data.user?.totalSavings || 0,
-          tier: data.user?.tier || 'Guest'
         });
+        if (data.user?.role === 'admin') {
+          fetchRegisteredUsers(token);
+        }
       } else {
         localStorage.removeItem('elevate_token');
         setUser(null);
@@ -55,6 +51,22 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchRegisteredUsers = async (token) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/users', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setRegisteredUsers(data.users);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
     }
   };
 
@@ -117,6 +129,9 @@ export const AuthProvider = ({ children }) => {
       };
       
       setUser(loggedInUser);
+      if (loggedInUser.role === 'admin') {
+        fetchRegisteredUsers(data.token);
+      }
       return loggedInUser;
     } catch (error) {
       return { error: 'Network error' };
@@ -169,11 +184,32 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
-  const updateProfile = (profileData) => {
-    setUser(prev => {
-      if (!prev) return null;
-      return { ...prev, ...profileData };
-    });
+  const updateProfile = async (profileData) => {
+    try {
+      const token = localStorage.getItem('elevate_token');
+      const response = await fetch('http://localhost:5000/api/profile', {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(profileData)
+      });
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return { error: data.message || 'Failed to update profile' };
+      }
+      
+      setUser(prev => {
+        if (!prev) return null;
+        return { ...prev, ...data.user };
+      });
+      return { success: true };
+    } catch (error) {
+      console.error('Update profile error:', error);
+      return { error: 'Network error' };
+    }
   };
 
   const cancelBooking = (bookingId) => {
@@ -288,11 +324,37 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
-  const adminUpdateUserStatus = (email, newStatus) => {
-    setRegisteredUsers(prev => prev.map(u => u.email === email ? { ...u, status: newStatus } : u));
+  const adminUpdateUserStatus = async (email, newStatus) => {
+    try {
+      const token = localStorage.getItem('elevate_token');
+      const response = await fetch(`http://localhost:5000/api/users/${email}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setRegisteredUsers(prev => prev.map(u => u.email === email ? { ...u, status: newStatus } : u));
+        logAppActivity(`User ${email} status changed to ${newStatus}`);
+      }
+    } catch (error) {
+      console.error('Error updating user status:', error);
+    }
   };
-  const adminDeleteUser = (email) => {
-    setRegisteredUsers(prev => prev.filter(u => u.email !== email));
+  const adminDeleteUser = async (email) => {
+    try {
+      const token = localStorage.getItem('elevate_token');
+      await fetch(`http://localhost:5000/api/users/${email}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setRegisteredUsers(prev => prev.filter(u => u.email !== email));
+    } catch (e) {
+      console.error(e);
+    }
   };
   const adminUpdateBooking = (email, bookingId, newStatus) => {
     setRegisteredUsers(prev => prev.map(u => {

@@ -1,19 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
 
-export default function AddProgramModal({ onClose, onSave, trainers }) {
+export default function AddProgramModal({ onClose, onSave, trainers, initialData }) {
   const [formData, setFormData] = useState({
-    title: '',
-    duration: '',
-    price: '',
-    category: 'wellness',
-    tier: 'Standard',
-    difficulty: 'Beginner',
-    maxCapacity: '',
-    description: '',
-    assignedTrainers: [],
-    image: null
+    title: initialData?.title || '',
+    duration: initialData?.duration || '',
+    price: initialData?.price || '',
+    category: initialData?.category || 'wellness',
+    tier: initialData?.tier || 'Standard',
+    difficulty: initialData?.difficulty || 'Beginner',
+    maxCapacity: initialData?.maxCapacity || initialData?.capacity || '',
+    description: initialData?.description || '',
+    image: initialData?.image || null
   });
+
+  const isEditing = !!initialData;
 
   const modalRef = useRef(null);
 
@@ -38,14 +39,7 @@ export default function AddProgramModal({ onClose, onSave, trainers }) {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleTrainerToggle = (trainerName) => {
-    setFormData(prev => {
-      const assigned = prev.assignedTrainers.includes(trainerName)
-        ? prev.assignedTrainers.filter(t => t !== trainerName)
-        : [...prev.assignedTrainers, trainerName];
-      return { ...prev, assignedTrainers: assigned };
-    });
-  };
+
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -78,7 +72,6 @@ export default function AddProgramModal({ onClose, onSave, trainers }) {
       difficulty: formData.difficulty,
       maxCapacity: formData.maxCapacity ? Number(formData.maxCapacity) : null,
       description: formData.description || 'Elevate standard program.',
-      coach: formData.assignedTrainers.join(', ') || 'Various Instructors',
       image: finalImage,
       rating: 5.0
     };
@@ -95,7 +88,7 @@ export default function AddProgramModal({ onClose, onSave, trainers }) {
         className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto glass-card rounded-2xl border border-white/10 p-6 shadow-2xl custom-scrollbar"
       >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="font-serif text-2xl font-bold text-primary">Add New Program</h2>
+          <h2 className="font-serif text-2xl font-bold text-primary">{isEditing ? 'Edit Program' : 'Add New Program'}</h2>
           <button onClick={handleClose} className="text-on-surface-variant hover:text-white transition">
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -122,15 +115,15 @@ export default function AddProgramModal({ onClose, onSave, trainers }) {
             <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <label className="block text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Program Name *</label>
-                <input type="text" name="title" value={formData.title} onChange={handleChange} required className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="e.g. High Intensity Flow" />
+                <input type="text" name="title" value={formData.title || ''} onChange={handleChange} required className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="e.g. High Intensity Flow" />
               </div>
               <div>
                 <label className="block text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Duration (Minutes) *</label>
-                <input type="number" name="duration" value={formData.duration} onChange={handleChange} required className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="e.g. 60" />
+                <input type="text" name="duration" value={formData.duration || ''} onChange={handleChange} required className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="e.g. 60 min" />
               </div>
               <div>
                 <label className="block text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Price (₹) *</label>
-                <input type="number" name="price" value={formData.price} onChange={handleChange} required className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="e.g. 1500" />
+                <input type="number" name="price" value={formData.price ?? ''} onChange={handleChange} required className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="e.g. 1500" />
               </div>
             </div>
           </div>
@@ -163,36 +156,36 @@ export default function AddProgramModal({ onClose, onSave, trainers }) {
             </div>
             <div>
               <label className="block text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Max Capacity (Optional)</label>
-              <input type="number" name="maxCapacity" value={formData.maxCapacity} onChange={handleChange} className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="e.g. 20" />
+              <input type="number" name="maxCapacity" value={formData.maxCapacity ?? ''} onChange={handleChange} className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="e.g. 20" />
             </div>
           </div>
 
           <div>
             <label className="block text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Program Description</label>
-            <textarea name="description" value={formData.description} onChange={handleChange} rows="3" className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none custom-scrollbar" placeholder="Details about this program..."></textarea>
+            <textarea name="description" value={formData.description ?? ''} onChange={handleChange} rows="3" className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none custom-scrollbar" placeholder="Details about this program..."></textarea>
           </div>
 
           <div>
-            <label className="block text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">Assigned Trainers</label>
-            <div className="flex flex-wrap gap-2">
-              {trainers && trainers.length > 0 ? trainers.map(t => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => handleTrainerToggle(t.name)}
-                  className={`px-3 py-1 text-xs border rounded-full transition-all ${formData.assignedTrainers.includes(t.name) ? 'bg-tertiary/20 border-tertiary text-tertiary font-bold' : 'bg-transparent border-white/10 text-on-surface-variant hover:border-white/30'}`}
-                >
-                  {t.name}
-                </button>
-              )) : (
-                <span className="text-xs text-on-surface-variant italic">No trainers available.</span>
+            <label className="block text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">Assigned Trainers (Read Only)</label>
+            <div className="flex flex-col gap-1">
+              {trainers && initialData?.title && trainers.filter(t => t.assignedPrograms && t.assignedPrograms.includes(initialData.title)).length > 0 ? (
+                trainers.filter(t => t.assignedPrograms && t.assignedPrograms.includes(initialData.title)).map(t => (
+                  <span
+                    key={t.id}
+                    className="text-xs text-on-surface-variant flex items-center gap-2"
+                  >
+                    • {t.name}
+                  </span>
+                ))
+              ) : (
+                <span className="text-xs text-on-surface-variant italic">No trainers assigned.</span>
               )}
             </div>
           </div>
 
           <div className="pt-4 border-t border-white/5 flex justify-end gap-3">
             <button type="button" onClick={handleClose} className="px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-on-surface-variant hover:text-white transition">Cancel</button>
-            <button type="submit" className="px-5 py-2.5 bg-tertiary text-on-tertiary text-xs font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition">Save Program</button>
+            <button type="submit" className="px-5 py-2.5 bg-tertiary text-on-tertiary text-xs font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition">{isEditing ? 'Save Changes' : 'Save Program'}</button>
           </div>
         </form>
       </div>

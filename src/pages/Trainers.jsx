@@ -7,7 +7,7 @@ export default function Trainers() {
   const [filter, setFilter] = useState('all');
   const navigate = useNavigate();
   const { selectProgram, selectTrainer, setCurrentStep } = useBooking();
-  const { trainers: mockTrainers, programs: mockPrograms } = useAppData();
+  const { trainers, programs } = useAppData();
 
   const handleBookWithCoach = (coach) => {
     // If no program is selected yet, find a matching program that the coach offers
@@ -20,8 +20,8 @@ export default function Trainers() {
   };
 
   const filteredTrainers = filter === 'all' 
-    ? mockTrainers 
-    : mockTrainers.filter(t => t.category.includes(filter));
+    ? trainers 
+    : trainers.filter(t => t.category.includes(filter));
 
   const [activeId, setActiveId] = useState(null);
 

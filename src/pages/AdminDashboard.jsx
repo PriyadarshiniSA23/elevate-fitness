@@ -36,6 +36,9 @@ export default function AdminDashboard() {
   const [showAddTrainerModal, setShowAddTrainerModal] = useState(false);
   const [showAddProgramModal, setShowAddProgramModal] = useState(false);
 
+  const [editingTrainer, setEditingTrainer] = useState(null);
+  const [editingProgram, setEditingProgram] = useState(null);
+
   const [adminBookingFilter, setAdminBookingFilter] = useState('All');
   const adminBookingsListRef = useRef(null);
 
@@ -562,7 +565,7 @@ export default function AdminDashboard() {
                         </td>
                         <td className="p-4 text-right space-x-3">
                           <button onClick={() => adminUpdateUserStatus(u.email, u.status === 'Suspended' ? 'Active' : 'Suspended')} className="text-[10px] font-bold uppercase text-tertiary border border-tertiary/20 px-2 py-1 rounded hover:bg-tertiary/10 transition">Toggle Status</button>
-                          <button onClick={() => { if(confirm(`Delete ${u.name}?`)) adminDeleteUser(u.email); }} className="text-[10px] font-bold uppercase text-error border border-error/20 px-2 py-1 rounded hover:bg-error/10 transition">Delete</button>
+                          <button onClick={() => { if(confirm(`Delete ${u.full_name}?`)) adminDeleteUser(u.email); }} className="text-[10px] font-bold uppercase text-error border border-error/20 px-2 py-1 rounded hover:bg-error/10 transition">Delete</button>
                         </td>
                       </tr>
                     ))}
@@ -665,6 +668,7 @@ export default function AdminDashboard() {
                   <thead className="bg-surface-container/50 border-b border-white/5 text-[10px] font-label-caps text-on-surface-variant uppercase tracking-widest">
                     <tr>
                       <th className="p-4">Trainer Details</th>
+                      <th className="p-4">Contact & Details</th>
                       <th className="p-4">Specialization</th>
                       <th className="p-4">Tier Access</th>
                       <th className="p-4">Availability</th>
@@ -677,22 +681,33 @@ export default function AdminDashboard() {
                         <td className="p-4 flex items-center gap-4">
                           <img className="w-9 h-9 rounded-full object-cover border border-white/10 shrink-0" src={coach.image || '/images/default_avatar.png'} alt={coach.name} />
                           <div>
-                            <input 
-                              type="text" 
-                              className="bg-transparent font-semibold border-none focus:ring-0 p-0 hover:bg-white/5 rounded"
-                              value={coach.name}
-                              onChange={(e) => updateTrainer(coach.id, { name: e.target.value })}
-                            />
-                            <p className="text-[10px] text-on-surface-variant font-mono">{coach.email}</p>
+                            <span className="font-semibold block">{coach.name}</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {coach.assignedPrograms && coach.assignedPrograms.length > 0 ? (
+                                coach.assignedPrograms.slice(0, 2).map((prog, idx) => (
+                                  <span key={idx} className="px-1.5 py-0.5 bg-tertiary/10 text-tertiary rounded-sm text-[9px] font-bold uppercase tracking-wider">
+                                    {prog}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-[10px] text-on-surface-variant italic">No programs</span>
+                              )}
+                              {coach.assignedPrograms && coach.assignedPrograms.length > 2 && (
+                                <span className="px-1.5 py-0.5 bg-white/5 text-on-surface-variant rounded-sm text-[9px] font-bold uppercase tracking-wider">
+                                  +{coach.assignedPrograms.length - 2}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4 text-on-surface-variant text-xs">
+                          <div>
+                            <div className="mb-1">{coach.email || '-'}</div>
+                            <div>{coach.phone || '-'}</div>
                           </div>
                         </td>
                         <td className="p-4 text-on-surface-variant">
-                          <input 
-                            type="text" 
-                            className="bg-transparent border-none focus:ring-0 p-0 text-sm hover:bg-white/5 rounded"
-                            value={coach.specialization}
-                            onChange={(e) => updateTrainer(coach.id, { specialization: e.target.value })}
-                          />
+                          <span className="text-sm">{coach.specialization}</span>
                         </td>
                         <td className="p-4">
                           <select 
@@ -718,9 +733,11 @@ export default function AdminDashboard() {
                           >
                             <option value="Active">Active</option>
                             <option value="On Leave">On Leave</option>
+                            <option value="Unavailable">Unavailable</option>
                           </select>
                         </td>
-                        <td className="p-4 text-right">
+                        <td className="p-4 text-right whitespace-nowrap">
+                          <button className="text-[10px] font-bold uppercase text-tertiary border border-tertiary/20 px-2 py-1 rounded hover:bg-tertiary/10 transition mr-2" onClick={() => setEditingTrainer(coach)}>Edit</button>
                           <button className="text-[10px] font-bold uppercase text-error border border-error/20 px-2 py-1 rounded hover:bg-error/10 transition" onClick={() => { if(confirm(`Delete ${coach.name}?`)) deleteTrainer(coach.id); }}>Remove</button>
                         </td>
                       </tr>
@@ -754,21 +771,13 @@ export default function AdminDashboard() {
                     {programs.filter(p => p.title?.toLowerCase().includes(searchQuery.toLowerCase())).map((prog) => (
                       <tr key={prog.id} className="hover:bg-white/5 transition-colors">
                         <td className="p-4 font-semibold">
-                          <input 
-                            type="text" 
-                            className="bg-transparent border-none focus:ring-0 p-0 text-sm hover:bg-white/5 rounded"
-                            value={prog.title}
-                            onChange={(e) => updateProgram(prog.id, { title: e.target.value })}
-                          />
+                          <span>{prog.title}</span>
                         </td>
-                        <td className="p-4 text-on-surface-variant">{prog.duration}</td>
+                        <td className="p-4 text-on-surface-variant">
+                          <span>{prog.duration}</span>
+                        </td>
                         <td className="p-4">
-                          <input 
-                            type="number" 
-                            className="bg-surface-container text-tertiary font-mono font-bold text-xs border border-white/10 rounded w-20 px-2 py-1"
-                            value={prog.price}
-                            onChange={(e) => updateProgram(prog.id, { price: parseInt(e.target.value) || 0 })}
-                          />
+                          <span className="font-mono text-tertiary font-bold">{prog.price}</span>
                         </td>
                         <td className="p-4">
                           <select 
@@ -796,7 +805,8 @@ export default function AdminDashboard() {
                             <option value="Unavailable">Unavailable</option>
                           </select>
                         </td>
-                        <td className="p-4 text-right">
+                        <td className="p-4 text-right whitespace-nowrap">
+                          <button className="text-[10px] font-bold uppercase text-tertiary border border-tertiary/20 px-2 py-1 rounded hover:bg-tertiary/10 transition mr-2" onClick={() => setEditingProgram(prog)}>Edit</button>
                           <button className="text-[10px] font-bold uppercase text-error border border-error/20 px-2 py-1 rounded hover:bg-error/10 transition" onClick={() => { if(confirm(`Delete ${prog.title}?`)) deleteProgram(prog.id); }}>Remove</button>
                         </td>
                       </tr>
@@ -982,26 +992,49 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* ADD MODALS */}
-          {showAddTrainerModal && (
-            <AddTrainerModal
-              onClose={() => setShowAddTrainerModal(false)}
-              onSave={(trainerData) => {
-                addTrainer(trainerData);
-                logActivity(`Trainer '${trainerData.name}' added successfully.`);
-              }}
+          {/* Add / Edit Trainer Modal */}
+          {(showAddTrainerModal || editingTrainer) && (
+            <AddTrainerModal 
               programs={programs}
+              initialData={editingTrainer}
+              onClose={() => {
+                setShowAddTrainerModal(false);
+                setEditingTrainer(null);
+              }} 
+              onSave={(trainerData) => {
+                if (editingTrainer) {
+                  updateTrainer(editingTrainer.id, trainerData);
+                  addNotification(`Coach '${trainerData.name}' updated successfully.`);
+                } else {
+                  addTrainer(trainerData);
+                  addNotification(`New coach '${trainerData.name}' added successfully.`);
+                }
+                setShowAddTrainerModal(false);
+                setEditingTrainer(null);
+              }} 
             />
           )}
 
-          {showAddProgramModal && (
-            <AddProgramModal
-              onClose={() => setShowAddProgramModal(false)}
-              onSave={(programData) => {
-                addProgram(programData);
-                logActivity(`Program '${programData.title}' added successfully.`);
-              }}
+          {/* Add / Edit Program Modal */}
+          {(showAddProgramModal || editingProgram) && (
+            <AddProgramModal 
               trainers={trainers}
+              initialData={editingProgram}
+              onClose={() => {
+                setShowAddProgramModal(false);
+                setEditingProgram(null);
+              }} 
+              onSave={(progData) => {
+                if (editingProgram) {
+                  updateProgram(editingProgram.id, progData);
+                  addNotification(`Program '${progData.title}' updated successfully.`);
+                } else {
+                  addProgram(progData);
+                  addNotification(`New program '${progData.title}' added successfully.`);
+                }
+                setShowAddProgramModal(false);
+                setEditingProgram(null);
+              }} 
             />
           )}
 

@@ -44,7 +44,7 @@ export default function Booking() {
 
   const { programs: rawPrograms, trainers: rawTrainers } = useAppData();
   const mockPrograms = rawPrograms.filter(p => p.availability !== 'Unavailable');
-  const mockTrainers = rawTrainers.filter(t => t.availability !== 'On Leave');
+  const activeTrainers = rawTrainers.filter(t => t.availability !== 'On Leave');
   const { user, isAuthenticated, addBooking } = useAuth();
   const navigate = useNavigate();
   const stepContainerRef = useRef(null);
@@ -182,8 +182,8 @@ export default function Booking() {
   }
 
   const availableTrainers = booking.program
-    ? mockTrainers.filter(trainer => trainer.category.includes(booking.program.category))
-    : mockTrainers;
+    ? activeTrainers.filter(trainer => trainer.assignedPrograms && trainer.assignedPrograms.includes(booking.program.title))
+    : activeTrainers;
 
   useEffect(() => {
     if (stepContainerRef.current) {

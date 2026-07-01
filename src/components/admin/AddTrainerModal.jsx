@@ -1,20 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
 
-export default function AddTrainerModal({ onClose, onSave, programs }) {
+export default function AddTrainerModal({ onClose, onSave, programs, initialData }) {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    specialization: '',
-    experience: '',
-    certifications: '',
-    bio: '',
-    tier: 'Standard',
-    availability: 'Active',
-    assignedPrograms: [],
-    image: null
+    name: initialData?.name || '',
+    email: initialData?.email || '',
+    phone: initialData?.phone || '',
+    specialization: initialData?.specialization || '',
+    experience: initialData?.experience || '',
+    certifications: initialData?.certifications || '',
+    bio: initialData?.bio || '',
+    tier: initialData?.tier || 'Standard',
+    availability: initialData?.availability || 'Active',
+    assignedPrograms: initialData?.assignedPrograms || [],
+    image: initialData?.image || null
   });
+
+  const isEditing = !!initialData;
 
   const modalRef = useRef(null);
 
@@ -87,7 +89,8 @@ export default function AddTrainerModal({ onClose, onSave, programs }) {
       category: formData.assignedPrograms.length > 0 ? 'wellness' : 'strength', // simplistic category map
       title: 'Performance Coach',
       rating: 5.0,
-      image: finalImage
+      image: finalImage,
+      assignedPrograms: formData.assignedPrograms
     };
 
     onSave(newTrainer);
@@ -101,9 +104,10 @@ export default function AddTrainerModal({ onClose, onSave, programs }) {
         ref={modalRef}
         className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto glass-card rounded-2xl border border-white/10 p-6 shadow-2xl custom-scrollbar"
       >
+        {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="font-serif text-2xl font-bold text-primary">Add New Trainer</h2>
-          <button onClick={handleClose} className="text-on-surface-variant hover:text-white transition">
+          <h2 className="font-serif text-2xl font-bold text-primary">{isEditing ? 'Edit Coach' : 'Add New Coach'}</h2>
+          <button onClick={handleClose} className="text-on-surface-variant hover:text-primary transition-colors">
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
@@ -128,19 +132,19 @@ export default function AddTrainerModal({ onClose, onSave, programs }) {
             <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Full Name *</label>
-                <input type="text" name="name" value={formData.name} onChange={handleChange} required className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="e.g. Marcus Lee" />
+                <input type="text" name="name" value={formData.name || ''} onChange={handleChange} required className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="e.g. Marcus Lee" />
               </div>
               <div>
                 <label className="block text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Email Address</label>
-                <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="marcus@elevate.fit" />
+                <input type="email" name="email" value={formData.email || ''} onChange={handleChange} className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="marcus@elevate.fit" />
               </div>
               <div>
                 <label className="block text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Phone Number</label>
-                <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="+91 98765 43210" />
+                <input type="tel" name="phone" value={formData.phone || ''} onChange={handleChange} className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="+91 98765 43210" />
               </div>
               <div>
                 <label className="block text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Specialization *</label>
-                <input type="text" name="specialization" value={formData.specialization} onChange={handleChange} required className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="e.g. Hypertrophy & Biomechanics" />
+                <input type="text" name="specialization" value={formData.specialization || ''} onChange={handleChange} required className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="e.g. Hypertrophy & Biomechanics" />
               </div>
             </div>
           </div>
@@ -148,11 +152,11 @@ export default function AddTrainerModal({ onClose, onSave, programs }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Years of Experience *</label>
-              <input type="text" name="experience" value={formData.experience} onChange={handleChange} required className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="e.g. 5 Years" />
+              <input type="text" name="experience" value={formData.experience || ''} onChange={handleChange} required className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="e.g. 5 Years" />
             </div>
             <div>
               <label className="block text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Certifications</label>
-              <input type="text" name="certifications" value={formData.certifications} onChange={handleChange} className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="e.g. CSCS, NASM" />
+              <input type="text" name="certifications" value={formData.certifications || ''} onChange={handleChange} className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none" placeholder="e.g. CSCS, NASM" />
             </div>
             <div>
               <label className="block text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Membership Tier</label>
@@ -174,7 +178,7 @@ export default function AddTrainerModal({ onClose, onSave, programs }) {
 
           <div>
             <label className="block text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Biography</label>
-            <textarea name="bio" value={formData.bio} onChange={handleChange} rows="3" className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none custom-scrollbar" placeholder="Brief professional biography..."></textarea>
+            <textarea name="bio" value={formData.bio || ''} onChange={handleChange} rows="3" className="w-full bg-surface-container border border-white/5 rounded p-2 text-sm text-primary focus:border-tertiary focus:outline-none custom-scrollbar" placeholder="Enter professional biography..."></textarea>
           </div>
 
           <div>
@@ -195,9 +199,21 @@ export default function AddTrainerModal({ onClose, onSave, programs }) {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-white/5 flex justify-end gap-3">
-            <button type="button" onClick={handleClose} className="px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-on-surface-variant hover:text-white transition">Cancel</button>
-            <button type="submit" className="px-5 py-2.5 bg-tertiary text-on-tertiary text-xs font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition">Save Trainer</button>
+          {/* Actions */}
+          <div className="mt-8 flex justify-end gap-4 pt-6 border-t border-white/5">
+            <button 
+              type="button" 
+              onClick={handleClose}
+              className="px-6 py-2.5 rounded font-label-caps text-xs tracking-wider uppercase font-bold text-on-surface-variant hover:text-primary hover:bg-white/5 transition-all"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              className="px-6 py-2.5 rounded font-label-caps text-xs tracking-wider uppercase font-bold bg-tertiary text-on-tertiary hover:brightness-110 transition-all shadow-lg shadow-tertiary/20"
+            >
+              {isEditing ? 'Save Changes' : 'Create Coach'}
+            </button>
           </div>
         </form>
       </div>

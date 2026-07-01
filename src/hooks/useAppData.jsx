@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { mockTrainers, mockPrograms, mockMemberships } from '../services/api';
+import { mockPrograms, mockMemberships } from '../services/api';
 
 const AppDataContext = createContext(null);
 
@@ -12,13 +12,9 @@ export const AppDataProvider = ({ children }) => {
 
   // Initialize from LocalStorage or API Mocks
   useEffect(() => {
-    const savedTrainers = localStorage.getItem('elevate_trainers');
-    if (savedTrainers) setTrainers(JSON.parse(savedTrainers));
-    else { setTrainers(mockTrainers); localStorage.setItem('elevate_trainers', JSON.stringify(mockTrainers)); }
+    fetchTrainers();
 
-    const savedPrograms = localStorage.getItem('elevate_programs');
-    if (savedPrograms) setPrograms(JSON.parse(savedPrograms));
-    else { setPrograms(mockPrograms); localStorage.setItem('elevate_programs', JSON.stringify(mockPrograms)); }
+    fetchPrograms();
 
     const savedMemberships = localStorage.getItem('elevate_memberships');
     if (savedMemberships) setMemberships(JSON.parse(savedMemberships));
@@ -66,61 +62,312 @@ export const AppDataProvider = ({ children }) => {
   };
 
   // --- Trainer Updaters ---
-  const updateTrainer = (id, updatedData) => {
-    setTrainers(prev => {
-      const updated = prev.map(t => t.id === id ? { ...t, ...updatedData } : t);
-      localStorage.setItem('elevate_trainers', JSON.stringify(updated));
-      return updated;
-    });
-    logActivity(`Trainer ${updatedData.name || id} updated.`);
+  const fetchTrainers = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/trainers');
+      const data = await res.json();
+      if (data.success) {
+        // Map backend schema to frontend expectation
+        const mappedTrainers = data.trainers.map(t => ({
+          id: t.id,
+          name: t.trainer_name,
+          email: t.email,
+          phone: t.phone,
+          specialization: t.specialization,
+          experience: t.years_of_experience,
+          certifications: t.certifications,
+          bio: t.biography,
+          tier: t.membership_access_level,
+          availability: t.availability,
+          category: t.category,
+          title: t.title,
+          image: t.profile_image || '/images/default_trainer.png',
+          rating: parseFloat(t.rating) || 5.0,
+          assignedPrograms: t.assignedPrograms || [],
+          mapped_programs: t.mapped_programs || [] // Raw objects if needed
+        }));
+        setTrainers(mappedTrainers);
+      }
+    } catch (error) {
+      console.error('Error fetching trainers:', error);
+      addNotification('Failed to fetch trainers from server.');
+    }
   };
 
-  const addTrainer = (newTrainer) => {
-    setTrainers(prev => {
-      const updated = [...prev, newTrainer];
-      localStorage.setItem('elevate_trainers', JSON.stringify(updated));
-      return updated;
-    });
-    logActivity(`Trainer ${newTrainer.name} added.`);
-    addNotification(`New Trainer Added: ${newTrainer.name}`);
+  const updateTrainer = async (id, updatedData) => {
+    try {
+      const existingTrainer = trainers.find(t => t.id === id);
+      if (!existingTrainer) return;
+      const merged = { ...existingTrainer, ...updatedData };
+      const token = localStorage.getItem('elevate_token');
+
+      // Map assigned program titles to program IDs
+      const programIds = (merged.assignedPrograms || []).map(title => {
+        const prog = programs.find(p => p.title === title);
+        return prog ? prog.id : null;
+      }).filter(id => id !== null);
+
+      const payload = {
+        // Standard keys used currently
+        trainer_name: merged.name,
+        email: merged.email,
+        phone: merged.phone,
+        specialization: merged.specialization,
+        years_of_experience: merged.experience,
+        certifications: merged.certifications,
+        biography: merged.bio,
+        membership_access_level: merged.tier,
+        availability: merged.availability,
+        category: merged.category,
+        title: merged.title,
+        profile_image: merged.image,
+        assignedPrograms: merged.assignedPrograms,
+
+        // Required API naming conventions from requirements list
+        full_name: merged.name,
+        phone_number: merged.phone,
+        experience: merged.experience,
+        tier_access: merged.tier,
+        programIds: programIds
+      };
+
+      const res = await fetch(`http://localhost:5000/api/trainers/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        logActivity(`Trainer ${merged.name} updated.`);
+        if (data.trainer) {
+          const t = data.trainer;
+          const updatedTrainerObj = {
+            id: t.id,
+            name: t.trainer_name,
+            email: t.email,
+            phone: t.phone,
+            specialization: t.specialization,
+            experience: t.years_of_experience,
+            certifications: t.certifications,
+            bio: t.biography,
+            tier: t.membership_access_level,
+            availability: t.availability,
+            category: t.category,
+            title: t.title,
+            image: t.profile_image || '/images/default_trainer.png',
+            rating: parseFloat(t.rating) || 5.0,
+            assignedPrograms: t.assignedPrograms || [],
+            mapped_programs: t.mapped_programs || []
+          };
+          setTrainers(prev => prev.map(item => item.id === id ? updatedTrainerObj : item));
+        }
+        fetchTrainers();
+      } else {
+        addNotification(data.message || 'Failed to update trainer.');
+      }
+    } catch (error) {
+      console.error('Error updating trainer:', error);
+      addNotification('Error updating trainer.');
+    }
   };
 
-  const deleteTrainer = (id) => {
-    setTrainers(prev => {
-      const updated = prev.filter(t => t.id !== id);
-      localStorage.setItem('elevate_trainers', JSON.stringify(updated));
-      return updated;
-    });
-    logActivity(`Trainer ID ${id} deleted.`);
+  const addTrainer = async (newTrainer) => {
+    try {
+      const token = localStorage.getItem('elevate_token');
+      const payload = {
+        trainer_name: newTrainer.name,
+        email: newTrainer.email,
+        phone: newTrainer.phone,
+        specialization: newTrainer.specialization,
+        years_of_experience: newTrainer.experience,
+        certifications: newTrainer.certifications,
+        biography: newTrainer.bio,
+        membership_access_level: newTrainer.tier,
+        availability: newTrainer.availability,
+        category: newTrainer.category,
+        title: newTrainer.title,
+        profile_image: newTrainer.image,
+        assignedPrograms: newTrainer.assignedPrograms
+      };
+
+      const res = await fetch('http://localhost:5000/api/trainers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        logActivity(`Trainer ${newTrainer.name} added.`);
+        addNotification(`New Trainer Added: ${newTrainer.name}`);
+        fetchTrainers();
+      } else {
+        addNotification(data.message || 'Failed to add trainer.');
+      }
+    } catch (error) {
+      console.error('Error adding trainer:', error);
+      addNotification('Error adding trainer.');
+    }
   };
 
-  // --- Program Updaters ---
-  const updateProgram = (id, updatedData) => {
-    setPrograms(prev => {
-      const updated = prev.map(p => p.id === id ? { ...p, ...updatedData } : p);
-      localStorage.setItem('elevate_programs', JSON.stringify(updated));
-      return updated;
-    });
-    logActivity(`Program ${updatedData.title || id} updated.`);
+  const deleteTrainer = async (id) => {
+    try {
+      const token = localStorage.getItem('elevate_token');
+      const res = await fetch(`http://localhost:5000/api/trainers/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        logActivity(`Trainer ID ${id} deleted.`);
+        fetchTrainers();
+      } else {
+        addNotification(data.message || 'Failed to delete trainer.');
+      }
+    } catch (error) {
+      console.error('Error deleting trainer:', error);
+      addNotification('Error deleting trainer.');
+    }
   };
 
-  const addProgram = (newProgram) => {
-    setPrograms(prev => {
-      const updated = [...prev, newProgram];
-      localStorage.setItem('elevate_programs', JSON.stringify(updated));
-      return updated;
-    });
-    logActivity(`Program ${newProgram.title} added.`);
-    addNotification(`New Program Added: ${newProgram.title}`);
+  // --- Program Updaters (API Integration) ---
+  const fetchPrograms = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/programs');
+      const data = await res.json();
+      if (data.success) {
+        // Map backend schema to frontend mock structure
+        const mappedPrograms = data.programs.map(p => ({
+          id: p.id,
+          title: p.program_name,
+          description: p.description,
+          duration: p.duration + ' min', // keep as string to match old UI expectations
+          price: p.price,
+          image: p.program_image || '/images/default.png',
+          availability: p.availability,
+          tier: p.membership_access_level || 'Standard',
+          category: p.difficulty_level || 'wellness',
+          capacity: p.capacity,
+          rating: 5.0
+        }));
+        setPrograms(mappedPrograms);
+      }
+    } catch (error) {
+      console.error('Error fetching programs:', error);
+      addNotification('Failed to fetch programs from server.');
+    }
   };
 
-  const deleteProgram = (id) => {
-    setPrograms(prev => {
-      const updated = prev.filter(p => p.id !== id);
-      localStorage.setItem('elevate_programs', JSON.stringify(updated));
-      return updated;
-    });
-    logActivity(`Program ID ${id} deleted.`);
+  const updateProgram = async (id, updatedData) => {
+    try {
+      const existingProgram = programs.find(p => p.id === id);
+      if (!existingProgram) {
+        console.error('Program not found for update');
+        return;
+      }
+      const merged = { ...existingProgram, ...updatedData };
+
+      const token = localStorage.getItem('elevate_token');
+      // Reverse map
+      const payload = {
+        program_name: merged.title,
+        description: merged.description,
+        duration: parseInt(merged.duration),
+        price: merged.price,
+        program_image: merged.image,
+        availability: merged.availability,
+        membership_access_level: merged.tier,
+        difficulty_level: merged.category,
+        capacity: merged.maxCapacity || merged.capacity
+      };
+
+      const res = await fetch(`http://localhost:5000/api/programs/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        logActivity(`Program ${updatedData.title || id} updated.`);
+        fetchPrograms(); // refresh list
+      } else {
+        addNotification(data.message || 'Failed to update program.');
+      }
+    } catch (error) {
+      console.error('Error updating program:', error);
+      addNotification('Error updating program.');
+    }
+  };
+
+  const addProgram = async (newProgram) => {
+    try {
+      const token = localStorage.getItem('elevate_token');
+      const payload = {
+        program_name: newProgram.title,
+        description: newProgram.description,
+        duration: parseInt(newProgram.duration),
+        price: newProgram.price,
+        program_image: newProgram.image,
+        availability: newProgram.availability,
+        membership_access_level: newProgram.tier,
+        difficulty_level: newProgram.category,
+        capacity: newProgram.maxCapacity
+      };
+
+      const res = await fetch('http://localhost:5000/api/programs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        logActivity(`Program ${newProgram.title} added.`);
+        addNotification(`New Program Added: ${newProgram.title}`);
+        fetchPrograms(); // refresh list
+      } else {
+        addNotification(data.message || 'Failed to add program.');
+      }
+    } catch (error) {
+      console.error('Error adding program:', error);
+      addNotification('Error adding program.');
+    }
+  };
+
+  const deleteProgram = async (id) => {
+    try {
+      const token = localStorage.getItem('elevate_token');
+      const res = await fetch(`http://localhost:5000/api/programs/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        logActivity(`Program ID ${id} deleted.`);
+        fetchPrograms(); // refresh list
+      } else {
+        addNotification(data.message || 'Failed to delete program.');
+      }
+    } catch (error) {
+      console.error('Error deleting program:', error);
+      addNotification('Error deleting program.');
+    }
   };
 
   // --- Membership Updaters ---

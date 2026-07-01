@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import gsap from 'gsap';
-import { mockPrograms, mockTrainers, mockTransformations, mockTestimonials } from '../services/api';
+import { mockTransformations, mockTestimonials } from '../services/api';
+import { useAppData } from '../hooks/useAppData';
 
 // Premium Mouse-Track Parallax Spotlight Bento Card Component
 function BentoCard({ className, bgImage, title, description }) {
@@ -69,6 +70,7 @@ function BentoCard({ className, bgImage, title, description }) {
 }
 
 export default function Home() {
+  const { programs, trainers } = useAppData();
   const [isSwapped, setIsSwapped] = useState(false);
   const [activeStat, setActiveStat] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -353,21 +355,21 @@ export default function Home() {
           {/* Strength (Large Card) */}
           <BentoCard 
             className="md:col-span-2"
-            bgImage={mockPrograms[1].image}
+            bgImage={programs.length > 1 ? programs[1].image : '/images/strength_conditioning.png'}
             title="Strength &amp; Conditioning"
             description="Build absolute power and athletic resilience through scientific periodization."
           />
           
           {/* Yoga */}
           <BentoCard 
-            bgImage={mockPrograms[6].image}
+            bgImage={programs.length > 6 ? programs[6].image : '/images/yoga_wellness.png'}
             title="Yoga &amp; Mobility"
             description="Restore alignment, expand joint range of motion, and optimize recovery flow."
           />
           
           {/* HIIT */}
           <BentoCard 
-            bgImage={mockPrograms[3].image}
+            bgImage={programs.length > 3 ? programs[3].image : '/images/hiit.png'}
             title="HIIT Mastery"
             description="Accelerate metabolism and build anaerobic thresholds with elite interval sessions."
           />
@@ -375,7 +377,7 @@ export default function Home() {
           {/* Personal training (Wide Card) */}
           <BentoCard 
             className="md:col-span-2"
-            bgImage={mockPrograms[0].image}
+            bgImage={programs.length > 0 ? programs[0].image : '/images/personal_training.png'}
             title="Personal Elite Training"
             description="The ultimate 1-on-1 experience with our head performance directors."
           />
@@ -392,7 +394,7 @@ export default function Home() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
-            {mockTrainers.slice(0, 3).map((trainer) => (
+            {trainers && trainers.length > 0 ? trainers.slice(0, 3).map((trainer) => (
               <div key={trainer.id} className="glass-card overflow-hidden group border border-white/5">
                 <div className="aspect-[4/5] overflow-hidden">
                   <img 
@@ -407,7 +409,9 @@ export default function Home() {
                   <p className="text-on-surface-variant text-sm pt-2 line-clamp-2">{trainer.bio}</p>
                 </div>
               </div>
-            ))}
+            )) : (
+              <p className="text-on-surface-variant">Loading trainers...</p>
+            )}
           </div>
           
           <div className="text-center mt-12">
